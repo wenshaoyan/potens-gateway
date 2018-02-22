@@ -1,0 +1,31 @@
+{
+  "name": "potens-gateway",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wenshaoyan/potens-gateway"
+  },
+  "description": "nodejs实现的网关",
+  "keywords": [
+    "thrift",
+    "nodejs",
+    "graphql"
+  ],
+  "author": "wenshao314106@163.com",
+  "license": "MIT",
+  "main": "index.js",
+  "engines": {
+    "node": ">=7.7.0"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "graphql": "^0.13.1",
+    "koa": "^2.2.0",
+    "koa-bodyparser": "^3.2.0",
+    "koa-convert": "^1.2.0",
+    "koa-json": "^2.0.2",
+    "koa-router": "^7.1.1",
+    "koa2-cors": "^2.0.3",
+    "zk-curator": "^1.0.1"
+  }
+}
