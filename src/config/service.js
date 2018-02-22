@@ -3,12 +3,17 @@ module.exports = {
         "url": process.env.ZK_URL,
         "register": [
             {
-                "path": "/develop/graphql/admin",
-                "id": "127.0.0.1:9000",
-                "data": {
-                }
+                "path": `/${NODE_ENV}/gateway`,
+                "id": `${process.env.APP_IP}:${process.env.APP_PORT}`,
+                "data": {}
             }
         ]
+    },
+    "graphql": {
+        "path_dir": `/${NODE_ENV}/graphql`
+    },
+    "restful": {
+        "path_dir": `/${NODE_ENV}/restful`
     },
     "web": {
         "port": process.env.APP_PORT

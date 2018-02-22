@@ -19,6 +19,7 @@ function getEnv() {
 
 global.NODE_ENV = getEnv();
 
+
 // 加载log4js
 const log4js = require('log4js');
 const log4jsConfig = require('../config/log4js.js');
@@ -35,13 +36,7 @@ global.getServiceConfig = () => {
 const app = require('../app');
 
 // 连接zookeeper
-const Curator = require('../modules/node-curator');
-const CuratorFrameworkFactory = Curator.CuratorFrameworkFactory;
-const Stat = Curator.Stat;
-
-
-// 导入server
-const ThriftHelp = require('../modules/thrift-help');
+const {CuratorFrameworkFactory}= require('zk-curator');
 
 
 /**
@@ -62,25 +57,50 @@ const server = http.createServer(app.callback());
  */
 let client;
 client = CuratorFrameworkFactory.builder()
-.connectString(serviceConfig.zkServer)
-.setLogger(getLogger('zookeeper'))
-.build(main);
+    .connectString(serviceConfig.zk.url)
+    .setLogger(getLogger('zookeeper'))
+    .build(main);
 client.start();
-//global.myUserServer = null;
-let preNodeList = null;
+const getData = () => {
 
-
+};
 async function main() {
+    try {
 
+        // 获取graphql所有子节点
+        let parentPath = serviceConfig.graphql.path_dir;
+        let isNext = !!await client.checkExists()
+            .unwantedNamespace()
+            .forPath(serviceConfig.graphql.path_dir);
+        if (!isNext) {    // 父节点不存在
+            throw new Error(`${serviceConfig.graphql.path_dir}不存在`);
+        }
+        const childrenData = await client.getChildren()
+            .unwantedNamespace()
+            .setWatcher(client, (__client, event) => {
+                if (event.getType() === 4) {     // 子节点变化
+
+                }
+            })
+            .forPath(parentPath);
+        if (childrenData.length !== 0) {
+
+        }
+        console.log(childrenData)
+
+
+
+        // 获取restful所有子节点
+
+    } catch (e) {
+        console.log(e)
+        process.exit();
+    }
 }
 
 process.on('exit', (code) => {
     logger.error('process exit!');
     logger.info('zookeeper session close!');
-    // client = null;
-    //process.exit();
-    //client.close();
-
 });
 
 /**

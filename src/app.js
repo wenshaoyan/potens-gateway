@@ -13,20 +13,6 @@ app.proxy = true;
 
 
 
-// logger
-app.use(router_log());
-
-// 获取用户信息
-// app.use(getUser());
-// 规范响应头
-app.use(response({
-    jsonFile:errorSource,
-    successLog:getLogger('resSuccess'),
-    failLog:getLogger('resFail')
-}));
-
-router.use('/banners', banner.routes(),banner.allowedMethods());
-
 app.use(router.routes(), router.allowedMethods());
 // response
 
