@@ -1,9 +1,9 @@
-{
+module.exports = {
   "appenders": {
     "console":{"type":"console"},
     "http":{
       "type": "logFaces-HTTP",
-      "url": "http://120.92.108.221:7000/AdminHttp/develop/123456789"
+      "url": `${process.env.LOG_URL}/Gateway/${NODE_ENV}/${process.env.LOG_SALT}`
     }
   },
   "categories": {
