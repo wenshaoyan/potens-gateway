@@ -10,10 +10,12 @@ module.exports = {
         ]
     },
     "graphql": {
-        "path_dir": `/${NODE_ENV}/graphql`
+        "path_dir": `/${NODE_ENV}/graphql`,
+        "routerPrefix": '/graphql'
     },
     "restful": {
-        "path_dir": `/${NODE_ENV}/restful`
+        "path_dir": `/${NODE_ENV}/restful`,
+        "routerPrefix": '/restful'
     },
     "web": {
         "port": process.env.APP_PORT

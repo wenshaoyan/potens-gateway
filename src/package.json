@@ -26,7 +26,8 @@
     "koa-json": "^2.0.2",
     "koa-router": "^7.1.1",
     "koa2-cors": "^2.0.3",
-    "zk-curator": "^1.0.1",
-    "log4js": "^2.3.3"
+    "log4js": "^2.3.3",
+    "node-fetch": "^2.0.0",
+    "zk-curator": "^1.0.3"
   }
 }
