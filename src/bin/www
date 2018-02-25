@@ -25,6 +25,7 @@ const log4js = require('log4js');
 const log4jsConfig = require('../config/log4js.js');
 global.getLogger = log4js.getLogger;
 const logger = getLogger();
+const errorLogger = getLogger('error');
 
 // 定义全局变量
 let serviceConfig = require('../config/service.js');
@@ -32,35 +33,60 @@ log4js.configure(log4jsConfig);
 global.getServiceConfig = () => {
     return serviceConfig;
 };
-const routerListeners = {
-    onGraphqlInit: function () {
 
-    },
-    onGraphqlAddService: function () {
+class ZKNodeData {
+    constructor(source) {
+        this.source = source;
+        this.services = {};
+    }
 
-    },
-    onGraphqlAddNode: function () {
+    emitGraphqlInit() {
+        if (!this.source || !(typeof this.source.nodes === 'object')) return;
+        for (const name in this.source.nodes) {
+            this.services[name] = [];
+            if (typeof this.source.nodes[name] !== 'object'
+                ||
+                typeof this.source.nodes[name]['nodes'] !== 'object'
+            ) return;
+            for (const address in this.source.nodes[name]['nodes']) {
+                this.services[name].push({
+                    address: address
+                });
+            }
+        }
+    }
+    isServiceExist(name) {
+        return name in this.services;
+    }
+    isServiceNotNull(name){
+        return !(this.services[name].length === 0);
+
+    }
+    getService(name) {
+        if (!this.isServiceExist(name) || !this.isServiceNotNull(name)) return false;
+        const arr = this.services[name];
+        const index = Math.floor((Math.random()*arr.length));
+        return arr[index]['address'];
 
     }
 
-};
-global.getZKInfo = function () {
-    return routerListeners;
-};
-global.setListenerRouter = function (o) {
-    routerListeners.onGraphqlInit = o.onGraphqlInit;
-    routerListeners.onGraphqlAddService = o.onGraphqlAddService;
-    routerListeners.onGraphqlAddNode = o.onGraphqlAddNode;
-};
-global.ZKInfo= {
-    graphql:{
 
-    },
-    restful: {
-
-    }
-};
+}
 const app = require('../app');
+// 监听错误
+app.on('error', function (err, ctx) {
+    switch (err.name){
+        case 'InternalServerError': // 由koa.throw抛出的异常
+            errorLogger.error(err);
+            break;
+        case 'FetchError':  // fetch异常
+            errorLogger.error(err);
+            break;
+        default:    // 未知异常
+            errorLogger.error(err);
+
+    }
+});
 
 // 连接zookeeper
 const {CuratorFrameworkFactory, getNodesInfo} = require('zk-curator');
@@ -84,9 +110,9 @@ let server;
  */
 let client;
 client = CuratorFrameworkFactory.builder()
-.connectString(serviceConfig.zk.url)
-.setLogger(getLogger('zookeeper'))
-.build(main);
+    .connectString(serviceConfig.zk.url)
+    .setLogger(getLogger('zookeeper'))
+    .build(main);
 client.start();
 /**
  * 检查配置
@@ -121,14 +147,17 @@ async function main() {
         let parentPath = serviceConfig.graphql.path_dir;
 
         const info = await getNodesInfo({
-            path:parentPath,
-            client: client
+            path: parentPath,
+            client: client,
+            callback: function () {
+                graphqlZkData.emitGraphqlInit();
+            }
         });
-        routerListeners.onGraphqlInit(info);
-        ZKInfo.graphql = info;
-        logger.info(JSON.stringify(info));
-        // 获取restful所有子节点
+        // routerListeners.onGraphqlInit(info);
+        global.graphqlZkData = new ZKNodeData(info);
+        graphqlZkData.emitGraphqlInit();
 
+        // 获取restful所有子节点
         server = http.createServer(app.callback());
         server.listen(port);
         server.on('error', onError);
@@ -200,23 +229,23 @@ function onListening() {
     debug('Listening on ' + bind);
 }
 
-process.on('exit',function(code){
+process.on('exit', function (code) {
     client.close(); // 释放zookeeper连接
     logger.info('zookeeper session close!');
     if (code === 1000) {
         logger.error('process:uncaughtException');
-    }else if (code === 1001) {
+    } else if (code === 1001) {
         logger.error('process:SIGINT');
     } else {
         logger.error('process:unknown');
     }
 });
-process.on('uncaughtException',function(){
+process.on('uncaughtException', function () {
     process.exit(1000);
 });
-process.on('SIGINT',function () {
+process.on('SIGINT', function () {
     process.exit(1001);
 });
-process.on('SIGKILL',function () {
+process.on('SIGTERM', function () {
     process.exit(1002);
 });
