@@ -41,21 +41,23 @@ class ZKNodeData {
     }
 
     emitGraphqlInit() {
-        if (!this.source || !(typeof this.source.nodes === 'object')) return;
-        for (const name in this.source.nodes) {
+        if (!this.source || !(typeof this.source.childrenData === 'object')) return;
+        const childrenData = this.source.childrenData;
+        for (const name in childrenData) {
             this.services[name] = [];
-            if (typeof this.source.nodes[name] !== 'object'
+            if (typeof childrenData[name] !== 'object'
                 ||
-                typeof this.source.nodes[name]['nodes'] !== 'object'
+                typeof childrenData[name]['childrenData'] !== 'object'
             ) return;
-            for (const address in this.source.nodes[name]['nodes']) {
+            for (const address in childrenData[name]['childrenData']) {
                 this.services[name].push({
-                    address: address
+                    address
                 });
             }
         }
     }
     isServiceExist(name) {
+        console.log(this.services)
         return name in this.services;
     }
     isServiceNotNull(name){
@@ -89,7 +91,7 @@ app.on('error', function (err, ctx) {
 });
 
 // 连接zookeeper
-const {CuratorFrameworkFactory, getNodesInfo} = require('zk-curator');
+const {CuratorFrameworkFactory, getNodesInfo, TreeCache} = require('zk-curator');
 
 
 /**
@@ -146,16 +148,27 @@ async function main() {
         // 获取graphql所有子节点
         let parentPath = serviceConfig.graphql.path_dir;
 
-        const info = await getNodesInfo({
-            path: parentPath,
-            client: client,
-            callback: function () {
+        const treeCache = new TreeCache(client, parentPath, 2);
+        await treeCache.start();
+        global.graphqlZkData = new ZKNodeData(treeCache.getData());
+        graphqlZkData.emitGraphqlInit();
+        treeCache.addListener({
+            childAdd: function (cache, deep) {
+                graphqlZkData.emitGraphqlInit();
+            },
+            childRemove: function (cache, deep) {
+                graphqlZkData.emitGraphqlInit();
+            },
+            nodeCreate: function (cache, deep) {
+                graphqlZkData.emitGraphqlInit();
+            },
+            nodeRemove: function (cache, deep) {
+                graphqlZkData.emitGraphqlInit();
+            },
+            nodeDataChange: function (cache, deep) {
                 graphqlZkData.emitGraphqlInit();
             }
         });
-        // routerListeners.onGraphqlInit(info);
-        global.graphqlZkData = new ZKNodeData(info);
-        graphqlZkData.emitGraphqlInit();
 
         // 获取restful所有子节点
         server = http.createServer(app.callback());

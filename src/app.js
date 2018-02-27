@@ -31,6 +31,7 @@ if (getServiceConfig().graphql) {
                         timeout: 2000
                     });
                     if (!res.ok) {
+                        console.log(res.ok);
                         ctx.throw(res.status, 'node post error');
                     } else {
                         ctx.body = await res.json();
