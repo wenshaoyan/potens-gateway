@@ -15,7 +15,7 @@ app.proxy = true;
 
 if (getServiceConfig().graphql) {
     const re = /^\/graphql\//;
-    app.use(async(ctx, next) => {
+    app.use(async (ctx, next) => {
         if (re.test(ctx.url)) {
             const urlR = ctx.url.replace(re, '');
             if (!graphqlZkData.isServiceExist(urlR)) {  // graphql没有节点
@@ -30,11 +30,14 @@ if (getServiceConfig().graphql) {
                         headers: {'Content-Type': 'application/json'},
                         timeout: 2000
                     });
-                    if (!res.ok) {
-                        console.log(res.ok);
-                        ctx.throw(res.status, 'node post error');
-                    } else {
-                        ctx.body = await res.json();
+                    try {
+                        if (!res.ok) {
+                            ctx.body = await res.json();
+                        } else {
+                            ctx.body = await res.json();
+                        }
+                    } catch (e) {
+                        ctx.throw(res.status, await res.text());
                     }
                 }
 
@@ -44,7 +47,7 @@ if (getServiceConfig().graphql) {
     });
 }
 if (getServiceConfig().restful) {
-    app.use(async(ctx, next) => {
+    app.use(async (ctx, next) => {
         if (ctx.url.test(/^\/restful/)) {
 
         }
@@ -53,8 +56,6 @@ if (getServiceConfig().restful) {
 
 app.use(graphqlRouter.routes(), graphqlRouter.allowedMethods());
 app.use(restfulRouter.routes(), restfulRouter.allowedMethods());
-
-
 
 
 module.exports = app;
