@@ -17,6 +17,11 @@ if (getServiceConfig().graphql) {
     const re = /^\/graphql\//;
     app.use(async (ctx, next) => {
         if (re.test(ctx.url)) {
+            const request_gateway_id = new Date().getTime() + '-' + Math.random().toString(36).substr(2);
+            const addHeader = {
+                request_gateway_id,
+                'Content-Type': 'application/json'
+            };
             const urlR = ctx.url.replace(re, '');
             if (!graphqlZkData.isServiceExist(urlR)) {  // graphql没有节点
                 ctx.throw(500, 'not found in nodes');
@@ -24,23 +29,29 @@ if (getServiceConfig().graphql) {
                 ctx.throw(500, 'not found service');
             } else {
                 if (ctx.method === 'POST') {
-                    const res = await fetch(`http://${graphqlZkData.getService(urlR)}/graphql`, {
-                        method: 'POST',
-                        body: JSON.stringify(ctx.request.body),
-                        headers: {'Content-Type': 'application/json'},
-                        timeout: 2000
-                    });
+                    let res;
                     try {
-                        if (!res.ok) {
-                            ctx.body = await res.json();
-                        } else {
-                            ctx.body = await res.json();
-                        }
+                        res = await fetch(`http://${graphqlZkData.getService(urlR)}/graphql`, {
+                            method: 'POST',
+                            body: JSON.stringify(ctx.request.body),
+                            headers: addHeader,
+                            timeout: 2000
+                        });
+                        ctx.body = await res.json();
                     } catch (e) {
-                        ctx.throw(res.status, await res.text());
+                        if (e instanceof fetch.FetchError) {    // 请求错误
+                            if (e.type === 'request-timeout') { // 请求超时
+                                ctx.throw(408, e.message);
+                            } else if (e.type === 'invalid-json'){  // 响应body转json失败
+                                ctx.throw(500, await res.text());
+                            } else {    // 其他
+                                ctx.throw(500, e.message);
+                            }
+                        } else {    // 其他异常
+                            ctx.throw(500, e.method);
+                        }
                     }
                 }
-
             }
 
         }
