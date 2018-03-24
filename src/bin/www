@@ -4,10 +4,7 @@
  * Module dependencies.
  *
  */
-
-const debug = require('debug')('demo:server');
-const http = require('http');
-const os = require('os');
+const {start, exit} = require('potens-core-node');
 
 
 const envSet = new Set(['develop', 'production']);
@@ -19,245 +16,38 @@ function getEnv() {
 
 global.NODE_ENV = getEnv();
 
-
-// 加载log4js
-const log4js = require('log4js');
-const log4jsConfig = require('../config/log4js.js');
-global.getLogger = log4js.getLogger;
+const log4j2 = require('log4j2-node');
+log4j2.configure(require('../config/log4js'));
+global.getLogger = log4j2.getLogger;
 const logger = getLogger();
-const errorLogger = getLogger('error');
 
-// 定义全局变量
-let serviceConfig = require('../config/service.js');
-log4js.configure(log4jsConfig);
+const config = require('../config/service');
 global.getServiceConfig = () => {
-    return serviceConfig;
+    return config
 };
 
-class ZKNodeData {
-    constructor(source) {
-        this.source = source;
-        this.services = {};
-    }
 
-    emitGraphqlInit() {
-        if (!this.source || !(typeof this.source.childrenData === 'object')) return;
-        const childrenData = this.source.childrenData;
-        for (const name in childrenData) {
-            this.services[name] = [];
-            if (typeof childrenData[name] !== 'object'
-                ||
-                typeof childrenData[name]['childrenData'] !== 'object'
-            ) return;
-            for (const address in childrenData[name]['childrenData']) {
-                this.services[name].push({
-                    address
-                });
-            }
-        }
-    }
-    isServiceExist(name) {
-        return name in this.services;
-    }
-    isServiceNotNull(name){
-        return !(this.services[name].length === 0);
-
-    }
-    getService(name) {
-        if (!this.isServiceExist(name) || !this.isServiceNotNull(name)) return false;
-        const arr = this.services[name];
-        const index = Math.floor((Math.random()*arr.length));
-        return arr[index]['address'];
-
-    }
-
-
-}
-const app = require('../app');
-// 监听错误
-app.on('error', function (err, ctx) {
-    switch (err.name){
-        case 'InternalServerError': // 由koa.throw抛出的异常
-            errorLogger.error(err);
-            break;
-        case 'FetchError':  // fetch异常
-            errorLogger.error(err);
-            break;
-        default:    // 未知异常
-            errorLogger.error(err);
-
-    }
+start(config, function () {
+    getLogger().info(`listen:${process.env.APP_PORT}`)
 });
 
-// 连接zookeeper
-const {CuratorFrameworkFactory, getNodesInfo, TreeCache} = require('zk-curator');
-
-
-/**
- * Get port from environment and store in Express.
- */
-
-const port = normalizePort(serviceConfig.web.port || '3001');
-// app.set('port', port);
-
-/**
- * Create HTTP server.
- */
-let server;
-
-
-/**
- * zookeeper start
- */
-let client;
-client = CuratorFrameworkFactory.builder()
-    .connectString(serviceConfig.zk.url)
-    .setLogger(getLogger('zookeeper'))
-    .build(main);
-client.start();
-/**
- * 检查配置
- * @param old
- * @return {{}}
- */
-const nodeConfig = (old) => {
-    try {
-        old = JSON.parse(old);
-        const n = {};
-        n.user = {};
-        if (typeof old.user === 'object') {
-            for (const key in old.user) {
-                const NC = {};
-                const current = old.user[key];
-                if ('deep' in current && typeof current.deep === 'number') NC.deep = current.deep;
-                if ('concurrency' in current && typeof current.concurrency === 'number') NC.concurrency = current.concurrency;
-                n.user[key] = NC;
-            }
-        }
-        return n;
-    } catch (e) {
-        return false;
-    }
-};
-
-
-async function main() {
-    try {
-
-        // 获取graphql所有子节点
-        let parentPath = serviceConfig.graphql.path_dir;
-
-        const treeCache = new TreeCache(client, parentPath, 2);
-        await treeCache.start();
-        global.graphqlZkData = new ZKNodeData(treeCache.getData());
-        graphqlZkData.emitGraphqlInit();
-        treeCache.addListener({
-            childAdd: function (cache, deep) {
-                graphqlZkData.emitGraphqlInit();
-            },
-            childRemove: function (cache, deep) {
-                graphqlZkData.emitGraphqlInit();
-            },
-            nodeCreate: function (cache, deep) {
-                graphqlZkData.emitGraphqlInit();
-            },
-            nodeRemove: function (cache, deep) {
-                graphqlZkData.emitGraphqlInit();
-            },
-            nodeDataChange: function (cache, deep) {
-                graphqlZkData.emitGraphqlInit();
-            }
-        });
-
-        // 获取restful所有子节点
-        server = http.createServer(app.callback());
-        server.listen(port);
-        server.on('error', onError);
-        server.on('listening', onListening);
-    } catch (e) {
-        logger.error(e);
-        process.exit();
-    }
-}
-
-/**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-    let port = parseInt(val, 10);
-
-    if (isNaN(port)) {
-        // named pipe
-        return val;
-    }
-
-    if (port >= 0) {
-        // port number
-        return port;
-    }
-
-    return false;
-}
-
-/**
- * Event listener for HTTP server "error" event.
- */
-
-function onError(error) {
-    if (error.syscall !== 'listen') {
-        throw error;
-    }
-
-    let bind = typeof port === 'string'
-        ? 'Pipe ' + port
-        : 'Port ' + port;
-
-    // handle specific listen errors with friendly messages
-    switch (error.code) {
-        case 'EACCES':
-            console.error(bind + ' requires elevated privileges');
-            process.exit(1);
-            break;
-        case 'EADDRINUSE':
-            console.error(bind + ' is already in use');
-            process.exit(1);
-            break;
-        default:
-            throw error;
-    }
-}
-
-/**
- * Event listener for HTTP server "listening" event.
- */
-
-function onListening() {
-    logger.info(`listener:${port}`);
-    let addr = server.address();
-    let bind = typeof addr === 'string'
-        ? 'pipe ' + addr
-        : 'port ' + addr.port;
-    debug('Listening on ' + bind);
-}
-
-process.on('exit', function (code) {
-    client.close(); // 释放zookeeper连接
+process.on('exit',function(code){
+    exit(); // 释放zookeeper连接
     logger.info('zookeeper session close!');
     if (code === 1000) {
         logger.error('process:uncaughtException');
-    } else if (code === 1001) {
+    }else if (code === 1001) {
         logger.error('process:SIGINT');
     } else {
         logger.error('process:unknown');
     }
 });
-process.on('uncaughtException', function () {
+process.on('uncaughtException',function(){
     process.exit(1000);
 });
-process.on('SIGINT', function () {
+process.on('SIGINT',function () {
     process.exit(1001);
 });
-process.on('SIGTERM', function () {
+process.on('SIGTERM',function () {
     process.exit(1002);
 });

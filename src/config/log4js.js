@@ -1,21 +1,17 @@
+const packageJson = require('../package.json');
 module.exports = {
-  "appenders": {
-    "console":{"type":"console"},
-    "http":{
-      "type": "logFaces-HTTP",
-      "url": `${process.env.LOG_URL}/Gateway/${NODE_ENV}/${process.env.LOG_SALT}`
+    "appenders": {
+        "console": {"type": "console"},
+        "kafka": {
+            "type": "kafka",
+            "socket_config": {"kafkaHost": process.env.KAFKA_URL, "topic": "global-log"}
+        }
+    },
+    "categories": {
+        "default": {"appenders": ["console"], "level": "trace"}
+    },
+    "project": {
+        "name":packageJson.name,
+        "version":packageJson.version
     }
-  },
-  "categories": {
-    "default": { "appenders": ["console"], "level":"trace" },
-    "router":{"appenders":["console","http"],"level":"trace"},
-    "zookeeper":{"appenders":["console","http"],"level":"trace"},
-    "thrift":{"appenders":["console","http"],"level":"trace"},
-    "resSuccess":{"appenders":["console"],"level":"trace"},
-    "resFail":{"appenders":["console","http"],"level":"trace"},
-    "resUnknown":{"appenders":["console","http"],"level":"trace"},
-    "error": {"appenders":["console","http"],"level":"trace"},
-    "core": {"appenders":["console","http"],"level":"trace"},
-    "graphql": {"appenders":["console","http"],"level":"trace"}
-  }
-}
+};

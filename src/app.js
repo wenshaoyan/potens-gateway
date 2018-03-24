@@ -13,7 +13,7 @@ app.use(convert(bodyparser));
 app.use(convert(json()));
 app.proxy = true;
 
-if (getServiceConfig().graphql) {
+/*if (getServiceConfig().graphql) {
     const re = /^\/graphql\//;
     app.use(async (ctx, next) => {
         if (re.test(ctx.url)) {
@@ -63,7 +63,7 @@ if (getServiceConfig().restful) {
 
         }
     });
-}
+}*/
 
 app.use(graphqlRouter.routes(), graphqlRouter.allowedMethods());
 app.use(restfulRouter.routes(), restfulRouter.allowedMethods());
