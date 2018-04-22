@@ -4,7 +4,8 @@
  * Module dependencies.
  *
  */
-const {start, exit} = require('potens-core-node');
+const {Application} = require('potens-core-node');
+const {start, exit} = Application;
 
 
 const envSet = new Set(['develop', 'production']);
@@ -25,11 +26,14 @@ const config = require('../config/service');
 global.getServiceConfig = () => {
     return config
 };
-
-
-start(config, function () {
-    getLogger().info(`listen:${process.env.APP_PORT}`)
-});
+(async function () {
+    try {
+        await start(config);
+        getLogger().info(`listen:${process.env.APP_PORT}`)
+    }catch(e) {
+        getLogger().error('start error', e)
+    }
+})();
 
 process.on('exit',function(code){
     exit(); // 释放zookeeper连接

@@ -27,6 +27,6 @@
     "koa2-cors": "^2.0.3",
     "log4j2-node": "^1.0.2",
     "node-fetch": "^2.0.0",
-    "potens-core-node": "^1.1.2"
+    "potens-core-node": "^1.1.3"
   }
 }
