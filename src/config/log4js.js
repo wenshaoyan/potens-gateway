@@ -4,7 +4,8 @@ module.exports = {
         "console": {"type": "console"},
     },
     "categories": {
-        "default": {"appenders": ["console"], "level": "trace"}
+        "default": {"appenders": ["console"], "level": "trace"},
+        "restful": {"appenders": ["console"], "level": "trace"}
     },
     "project": {
         "name":packageJson.name,

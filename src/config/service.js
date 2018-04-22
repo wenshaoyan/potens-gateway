@@ -10,6 +10,18 @@ module.exports = {
         "register": [
         ]
     },
+    "rabbitmq": {
+        "connects": {
+            "gateway": {
+                "protocol": "amqp",
+                "hostname": "120.92.108.221",
+                "port": "5672",
+                "username": "gateway",
+                "password": "123456",
+                "vhost": "/gateway"
+            }
+        }
+    },
     "web": {
         "port": process.env.APP_PORT,
         "app": require('../app')
