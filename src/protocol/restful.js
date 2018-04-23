@@ -40,7 +40,7 @@ async function post(ctx) {
     }
 
 
-    const ex = pathSplit[2] + '.topic';
+    const ex = pathSplit[2] + '.gateway';
     const routerKey = `${ctx.method.toLocaleLowerCase()}.${pathSplit.slice(3, pathSplit.length).join('.')}`;
 
     if (!await amqp.checkExchange(ex)) {
