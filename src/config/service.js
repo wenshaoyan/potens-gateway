@@ -18,7 +18,11 @@ module.exports = {
                 "port": "5672",
                 "username": "gateway",
                 "password": "123456",
-                "vhost": "/gateway"
+                "vhost": "/gateway",
+                "default_config": {
+                    "publish_timeout": 3000,
+                    "rpc_reply_timeout": 3000,
+                }
             }
         }
     },

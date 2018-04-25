@@ -8,7 +8,7 @@ module.exports = {
         "restful": {"appenders": ["console"], "level": "trace"}
     },
     "project": {
-        "name":packageJson.name,
-        "version":packageJson.version
+        "name": packageJson.name,
+        "version": packageJson.version
     }
 };

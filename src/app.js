@@ -3,7 +3,6 @@ const app = new Koa();
 const convert = require('koa-convert');
 const json = require('koa-json');
 const bodyparser = require('koa-bodyparser')();
-const fetch = require('node-fetch');
 
 // middlewares
 app.use(convert(bodyparser));
